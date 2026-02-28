@@ -1,0 +1,51 @@
+name: gsd-bridge
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  python:
+    name: python-${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . mypy ruff
+      - name: Ruff
+        run: |
+          ruff check gsd_bridge tests
+      - name: Mypy
+        run: |
+          mypy gsd_bridge
+      - name: Unit tests
+        run: |
+          python -m unittest discover -s tests -p "test_*.py" -v
+
+  typescript:
+    name: typescript-check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: claude-telegram-gsd
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: claude-telegram-gsd/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Type check
+        run: npm run typecheck
